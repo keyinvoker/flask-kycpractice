@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+</head>
+<body>
+    <form action="/verify/{{ user.id }}" method="POST">
+        <label for="name">Name: <input type="text" name="name" id="name" value="{{ user.name }}"></label>
+        <br>
+        <label for="email">Email: <input type="email" name="email" id="email" value="{{ user.email }}"></label>
+        <br>
+        <label for="phone">Phone: <input type="text" name="phone" id="phone" value="{{ user.phone }}"></label>
+        <br>
+        <label for="address">Address: <textarea name="address" id="address" cols="50" rows="30">{{ user.address }}</textarea></label>
+        <br>
+        <label for="salary">Salary: <input type="number" name="salary" id="salary" value="{{ user.salary }}"></label>
+        <br>
+        <label for="ktp">KTP: <input type="text" name="ktp" id="ktp" value="{{ user.ktp }}"></label>
+        <br>
+        <label for="npwp">NPWP: <input type="text" name="npwp" id="npwp" value="{{ user.npwp }}"></label>
+        <br>
+        <input type="submit" value="VERIFY" class="btn">
+    </form>
+</body>
+</html>

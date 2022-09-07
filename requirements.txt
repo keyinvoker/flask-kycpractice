@@ -1,0 +1,16 @@
+aniso8601
+click
+Flask
+Flask-RESTful
+Flask-SQLAlchemy
+SQLAlchemy
+itsdangerous
+Jinja2
+MarkupSafe
+pytz
+six
+Werkzeug
+mysql-connector
+pymysql
+cryptography
+email
