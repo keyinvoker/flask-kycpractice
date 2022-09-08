@@ -46,7 +46,7 @@ for user in mycursor:
                <!DOCTYPE html>
                 <body>
                     <p>Please verify or update your account\'s credentials.</p>
-                    <form action="http://127.0.0.1:5000" method="POST">
+                    <form action="http://127.0.0.1:5000/" method="GET">
                         <input type="submit" value="VERIFY" class="btn">
                     </form>
                 </body>
