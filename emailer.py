@@ -6,7 +6,6 @@ import os
 from dotenv import load_dotenv, find_dotenv
 import datetime
 from datetime import date
-
 import mysql.connector
 
 mydb = mysql.connector.connect(
@@ -32,14 +31,13 @@ password = os.environ['PUSS']
 server = 'smtp.gmail.com'
 port = 465
 
-subject = '[KYC] Annual Verification'
+subject = '[@home] Annual Verification'
 em = EmailMessage()
 em['From'] = sender
 em['Subject'] = subject
 
 for user in mycursor:
-    # if _get_send_date(user[8]) <= date.today():
-    if True:
+    if _get_send_date(user[8]) <= date.today():
         recipient = user[2]
         em['To'] = recipient
         body = '''
@@ -47,7 +45,7 @@ for user in mycursor:
                 <body>
                     <p>Please verify or update your account\'s credentials.</p>
                     <form action="http://127.0.0.1:5000/" method="GET">
-                        <input type="submit" value="VERIFY" class="btn">
+                        <input type="submit" value="VERIFY" class="btn" style="border: 1px solid green; color:darkgreen;">
                     </form>
                 </body>
                 </html>

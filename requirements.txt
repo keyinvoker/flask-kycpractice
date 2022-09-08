@@ -16,3 +16,4 @@ cryptography
 email
 flask-marshmallow
 marshmallow-SQLAlchemy
+requests
