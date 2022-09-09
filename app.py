@@ -245,23 +245,25 @@ sender = 'astrobattery100@gmail.com'
 password = os.environ['PUSS']
 server = 'smtp.gmail.com'
 port = 465
-subject = '[@API-test-bat] Annual Verification'
+subject = '[@API-test-marshall] Annual Verification'
 em = EmailMessage()
 em['From'] = sender
 em['Subject'] = subject
 
+def _get_expiration_date(date_string):
+    last_verified = date_string.split('-')
+    last_verified[0] = int(last_verified[0])
+    last_verified[1] = int(last_verified[1])
+    last_verified[2] = int(last_verified[2])
+    return date(last_verified[0], last_verified[1], last_verified[2])
+
 class VerificationEmail(Resource):
-    @marshal_with(resource_fields)
     def get(self):
         users = Users.query.all()
         user_schema = UserSchema(many=True)
         output = user_schema.dump(users)
         for user in output:
-            last_verified = user['last_verified'].split('-')
-            last_verified[0] = int(last_verified[0])
-            last_verified[1] = int(last_verified[1])
-            last_verified[2] = int(last_verified[2])
-            expiration_date = date(last_verified[0], last_verified[1], last_verified[2])
+            expiration_date = _get_expiration_date(user['last_verified'])
             verified_age = expiration_date + datetime.timedelta(days=365)
             if verified_age <= date.today():
                 recipient = user['email']
