@@ -28,5 +28,5 @@ BASE = 'http://127.0.0.1:5000/'
 #     print(response.json()) #TODO: {'message': "Did not attempt to load JSON data because the request Content-Type was not 'application/json'."}
 #     # but can POST in Postman
 
-response = requests.get(BASE + 'get')
+response = requests.get(BASE + 'mail')
 print(response.json())

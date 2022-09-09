@@ -1,6 +1,7 @@
 from flask import Flask, render_template, url_for, request, redirect
 from flask_sqlalchemy import SQLAlchemy
-from flask_restful import Api, Resource, reqparse, fields, marshal_with
+from flask_restful import Api, Resource, reqparse, fields, marshal_with, abort
+import datetime
 from datetime import date
 from flask_marshmallow import Marshmallow
 from http import HTTPStatus
@@ -39,6 +40,9 @@ class Users(db.Model):
 
     def save(self):
         db.session.add(self)
+        db.session.commit()
+
+    def update(self):
         db.session.commit()
 
     @classmethod
@@ -85,26 +89,26 @@ def index():
 #     else:
 #         return render_template('register.html')
 
-# @app.route('/verify/<int:id>', methods=['POST', 'GET'])
-# def verify(id):
-#     user = Users.query.get_or_404(id)
-#     if request.method == 'POST':
-#         user.name = request.form['name']
-#         user.email = request.form['email']
-#         user.phone = request.form['phone']
-#         user.address = request.form['address']
-#         user.salary = request.form['salary']
-#         user.ktp = request.form['ktp']
-#         user.npwp = request.form['npwp']
-#         user.last_verified = date.today()
+@app.route('/verify/<int:id>', methods=['POST', 'GET'])
+def verify(id):
+    user = Users.query.get_or_404(id)
+    if request.method == 'POST':
+        user.name = request.form['name']
+        user.email = request.form['email']
+        user.phone = request.form['phone']
+        user.address = request.form['address']
+        user.salary = request.form['salary']
+        user.ktp = request.form['ktp']
+        user.npwp = request.form['npwp']
+        user.last_verified = date.today()
         
-#         try:
-#             db.session.commit()
-#             return redirect('/')
-#         except:
-#             return 'Failed updating user!'
-#     else:
-#         return render_template('verify.html', user=user)
+        try:
+            db.session.commit()
+            return redirect('/')
+        except:
+            return 'Failed updating user!'
+    else:
+        return render_template('verify.html', user=user)
 
 # @app.route('/get')
 # def get():
@@ -126,6 +130,10 @@ user_post_args.add_argument('salary', type=int, help='your salary', required=Tru
 user_post_args.add_argument('ktp', type=str, help='your KTP', required=True)
 user_post_args.add_argument('npwp', type=str, help='your NPWP', required=True)
 
+class DateFormat(fields.Raw):
+    def format(self, value):
+        return value.strftime('%Y-%m-%d')
+
 resource_fields = {
     'id': fields.Integer,
     'name': fields.String,
@@ -135,7 +143,7 @@ resource_fields = {
     'salary': fields.Integer,
     'ktp': fields.String,
     'npwp': fields.String,
-    'last_verified': fields.DateTime,
+    'last_verified': DateFormat,
 }
 
 class RegisterUser(Resource):
@@ -163,30 +171,53 @@ class RegisterUser(Resource):
         )
 
         new_user.save()
-        return new_user, 201
+        return new_user
 api.add_resource(RegisterUser, '/register')
 
+# user_patch_args = reqparse.RequestParser()
+# user_patch_args.add_argument('name', type=str, help='your name')
+# user_patch_args.add_argument('email', type=str, help='your email')
+# user_patch_args.add_argument('phone', type=str, help='your phone')
+# user_patch_args.add_argument('address', type=str, help='your address')
+# user_patch_args.add_argument('salary', type=int, help='your salary')
+# user_patch_args.add_argument('ktp', type=str, help='your KTP')
+# user_patch_args.add_argument('npwp', type=str, help='your NPWP')
+
 class VerifyUser(Resource):
-    def get(id):
-        user = Users.query.get_or_404(id)
-        if request.method == 'POST':
-            user.name = request.form['name']
-            user.email = request.form['email']
-            user.phone = request.form['phone']
-            user.address = request.form['address']
-            user.salary = request.form['salary']
-            user.ktp = request.form['ktp']
-            user.npwp = request.form['npwp']
-            user.last_verified = date.today()
-            
-            try:
-                db.session.commit()
-                return redirect('/')
-            except:
-                return 'Failed updating user!'
-        else:
-            return render_template('verify.html', user=user)
-api.add_resource(VerifyUser, '/verify/<int:id>')
+    @marshal_with(resource_fields)
+    def get(self, user_id):
+        user = Users.query.filter_by(id=user_id).first()
+        return user
+
+#     @marshal_with(resource_fields)
+#     def post(self, user_id):
+#         user = Users.query.filter_by(id=user_id).first()
+#         args = user_post_args.parse_args()
+
+#         if not user:
+#             abort(404, message="nonexistence")
+
+#         if args['name']:
+#             user.name = args['name']
+#         if args['email']:
+#             user.email = args['email']
+#         if args['phone']:
+#             user.phone = args['phone']
+#         if args['address']:
+#             user.address = args['address']
+#         if args['salary']:
+#             user.salary = args['salary']
+#         if args['ktp']:
+#             user.ktp = args['ktp']
+#         if args['npwp']:
+#             user.npwp = args['npwp']
+#         user.last_verified = date.today()
+
+#         user.update()
+
+#         return user
+
+api.add_resource(VerifyUser, '/verify-user/<int:user_id>')
 
 class GetAll(Resource):
     def get(self):
@@ -196,6 +227,69 @@ class GetAll(Resource):
         return {'user': output}
 api.add_resource(GetAll, "/get")
 # [using flask_restful.Resource - END]
+
+
+# [EMAILING PROG]
+from email.message import EmailMessage
+import ssl
+import smtplib
+import os
+from dotenv import load_dotenv, find_dotenv
+
+# import mysql.connector
+# mycursor = db.cursor()
+# mycursor.execute('SELECT * FROM users')
+
+load_dotenv(find_dotenv())
+sender = 'astrobattery100@gmail.com'
+password = os.environ['PUSS']
+server = 'smtp.gmail.com'
+port = 465
+subject = '[@API-test-bat] Annual Verification'
+em = EmailMessage()
+em['From'] = sender
+em['Subject'] = subject
+
+class VerificationEmail(Resource):
+    @marshal_with(resource_fields)
+    def get(self):
+        users = Users.query.all()
+        user_schema = UserSchema(many=True)
+        output = user_schema.dump(users)
+        for user in output:
+            last_verified = user['last_verified'].split('-')
+            last_verified[0] = int(last_verified[0])
+            last_verified[1] = int(last_verified[1])
+            last_verified[2] = int(last_verified[2])
+            expiration_date = date(last_verified[0], last_verified[1], last_verified[2])
+            verified_age = expiration_date + datetime.timedelta(days=365)
+            if verified_age <= date.today():
+                recipient = user['email']
+                em['To'] = recipient
+                body = '''
+                    <!DOCTYPE html>
+                        <body>
+                            <p>Please verify or update your account\'s credentials.</p>
+                            <br>
+                            <form action="http://127.0.0.1:5000/" method="GET">
+                                <center>
+                                    <input type="submit" value="VERIFY" class="btn" style="border: 1px solid darkgreen; color:whitesmoke; background-color:green;">
+                                </center>
+                            </form>
+                        </body>
+                        </html>
+                    '''
+                em.set_content(body, subtype='html')
+
+                context = ssl.create_default_context()
+                
+                with smtplib.SMTP_SSL(server, port, context=context) as smtp:
+                    smtp.login(sender, password)
+                    smtp.sendmail(sender, recipient, em.as_string())
+                del em['To']
+
+api.add_resource(VerificationEmail, '/mail')
+# [EMAILING PROG - END]
 
 
 
