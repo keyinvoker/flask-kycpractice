@@ -52,26 +52,23 @@ class IndexPage(Resource):
 api.add_resource(IndexPage, '/')
 
 class VerifyPage(Resource):
-    def verify(id):
-        user = Users.query.get_or_404(id)
-        if request.method == 'POST':
-            user.name = request.form['name']
-            user.email = request.form['email']
-            user.phone = request.form['phone']
-            user.address = request.form['address']
-            user.salary = request.form['salary']
-            user.ktp = request.form['ktp']
-            user.npwp = request.form['npwp']
-            user.last_verified = date.today()
-            
-            try:
-                db.session.commit()
-                return redirect('/')
-            except:
-                return 'Failed updating user!'
-        else:
-            return render_template('verify.html', user=user)
-api.add_resource(VerifyPage, '/verify/<int:id>')
+    def get(self, user_id):
+        user = Users.query.filter_by(id=user_id).first()
+        headers = {'Content-Type': 'text/html'}
+        return make_response(render_template('verify.html', user=user), 200, headers)
+    
+    def post(self, user_id):
+        user = Users.query.filter_by(id=user_id).first()
+        user.name = request.form['name']
+        user.email = request.form['email']
+        user.phone = request.form['phone']
+        user.address = request.form['address']
+        user.salary = request.form['salary']
+        user.ktp = request.form['ktp']
+        user.npwp = request.form['npwp']
+        user.last_verified = date.today()
+        user.update()
+api.add_resource(VerifyPage, '/verify/<int:user_id>')
 
 user_post_args = reqparse.RequestParser()
 user_post_args.add_argument('name', type=str, help='your name', required=True)
