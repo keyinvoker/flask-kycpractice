@@ -1,5 +1,9 @@
 # NOTE: old app file before implementing REST API
 
+# @app.route('/')
+# def index():
+#     return render_template('index.html')
+
 # @app.route('/register', methods=['POST', 'GET'])
 # def register():
 #     if request.method == 'POST':
@@ -11,7 +15,7 @@
 #         ktp = request.form['ktp']
 #         npwp = request.form['npwp']
 #         last_verified = date.today()
-
+#
 #         new_user = Users(
 #             name=name,
 #             email=email,
@@ -22,7 +26,7 @@
 #             npwp=npwp,
 #             last_verified = last_verified,
 #         )
-
+#
 #         try:
 #             db.session.add(new_user)
 #             db.session.commit()
@@ -39,8 +43,29 @@
 #     output = user_schema.dump(user)
 #     return {'user': output}
 
+# @app.route('/verify/<int:id>', methods=['POST', 'GET'])
+# def verify(id):
+#     user = Users.query.get_or_404(id)
+#     if request.method == 'POST':
+#         user.name = request.form['name']
+#         user.email = request.form['email']
+#         user.phone = request.form['phone']
+#         user.address = request.form['address']
+#         user.salary = request.form['salary']
+#         user.ktp = request.form['ktp']
+#         user.npwp = request.form['npwp']
+#         user.last_verified = date.today()
+        
+#         try:
+#             db.session.commit()
+#             return redirect('/')
+#         except:
+#             return 'Failed updating user!'
+#     else:
+#         return render_template('verify.html', user=user)
 
-# NOTE: user verify page method needs frontend/html, therefore not implementing REST API
+
+
 # user_patch_args = reqparse.RequestParser()
 # user_patch_args.add_argument('name', type=str, help='your name')
 # user_patch_args.add_argument('email', type=str, help='your email')
@@ -57,13 +82,13 @@
 #         return user
 
 #     @marshal_with(resource_fields)
-#     def post(self, user_id):
+#     def patch(self, user_id):
 #         user = Users.query.filter_by(id=user_id).first()
 #         args = user_post_args.parse_args()
-
+#
 #         if not user:
 #             abort(404, message="nonexistence")
-
+#
 #         if args['name']:
 #             user.name = args['name']
 #         if args['email']:
@@ -79,9 +104,9 @@
 #         if args['npwp']:
 #             user.npwp = args['npwp']
 #         user.last_verified = date.today()
-
+# 
 #         user.update()
-
+# 
 #         return user
 
 # api.add_resource(VerifyUser, '/verify-user/<int:user_id>')

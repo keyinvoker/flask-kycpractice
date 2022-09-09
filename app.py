@@ -1,9 +1,14 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, make_response, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Api, Resource, reqparse, fields, marshal_with
 import datetime
 from datetime import date
 from flask_marshmallow import Marshmallow
+from email.message import EmailMessage
+import ssl
+import smtplib
+import os
+from dotenv import load_dotenv, find_dotenv
 
 app = Flask(__name__)
 api = Api(app)
@@ -23,7 +28,7 @@ class Users(db.Model):
     last_verified = db.Column(db.Date, nullable=False)
 
     def __repr__(self):
-        return f"Users (name = {self.name})"
+        return f"User { self.id }: ({ self.name })"
 
     def save(self):
         db.session.add(self)
@@ -40,30 +45,33 @@ class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Users
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+class IndexPage(Resource):
+    def get(self):
+        headers = {'Content-Type': 'text/html'}
+        return make_response(render_template('index.html'), 200, headers)
+api.add_resource(IndexPage, '/')
 
-@app.route('/verify/<int:id>', methods=['POST', 'GET'])
-def verify(id):
-    user = Users.query.get_or_404(id)
-    if request.method == 'POST':
-        user.name = request.form['name']
-        user.email = request.form['email']
-        user.phone = request.form['phone']
-        user.address = request.form['address']
-        user.salary = request.form['salary']
-        user.ktp = request.form['ktp']
-        user.npwp = request.form['npwp']
-        user.last_verified = date.today()
-        
-        try:
-            db.session.commit()
-            return redirect('/')
-        except:
-            return 'Failed updating user!'
-    else:
-        return render_template('verify.html', user=user)
+class VerifyPage(Resource):
+    def verify(id):
+        user = Users.query.get_or_404(id)
+        if request.method == 'POST':
+            user.name = request.form['name']
+            user.email = request.form['email']
+            user.phone = request.form['phone']
+            user.address = request.form['address']
+            user.salary = request.form['salary']
+            user.ktp = request.form['ktp']
+            user.npwp = request.form['npwp']
+            user.last_verified = date.today()
+            
+            try:
+                db.session.commit()
+                return redirect('/')
+            except:
+                return 'Failed updating user!'
+        else:
+            return render_template('verify.html', user=user)
+api.add_resource(VerifyPage, '/verify/<int:id>')
 
 user_post_args = reqparse.RequestParser()
 user_post_args.add_argument('name', type=str, help='your name', required=True)
@@ -90,7 +98,11 @@ resource_fields = {
     'last_verified': DateFormat,
 }
 
-class RegisterUser(Resource):
+class RegisterPage(Resource):
+    def get(self):
+        headers = {'Content-Type': 'text/html'}
+        return make_response(render_template('register.html'), 200, headers)
+
     @marshal_with(resource_fields)
     def post(self):
         args = user_post_args.parse_args()
@@ -111,12 +123,12 @@ class RegisterUser(Resource):
             salary=salary,
             ktp=ktp,
             npwp=npwp,
-            last_verified = last_verified,
+            last_verified=last_verified,
         )
 
         new_user.save()
         return new_user
-api.add_resource(RegisterUser, '/register')
+api.add_resource(RegisterPage, '/register')
 
 class GetOne(Resource):
     @marshal_with(resource_fields)
@@ -134,31 +146,24 @@ class GetAll(Resource):
 api.add_resource(GetAll, "/get")
 
 # [EMAILING PROG]
-from email.message import EmailMessage
-import ssl
-import smtplib
-import os
-from dotenv import load_dotenv, find_dotenv
-
-load_dotenv(find_dotenv())
-sender = 'astrobattery100@gmail.com'
-password = os.environ['PUSS']
-server = 'smtp.gmail.com'
-port = 465
-subject = '[@API-final-test] Annual Verification'
-em = EmailMessage()
-em['From'] = sender
-em['Subject'] = subject
-
 def _get_expiration_date(date_string):
     last_verified = date_string.split('-')
-    last_verified[0] = int(last_verified[0])
-    last_verified[1] = int(last_verified[1])
-    last_verified[2] = int(last_verified[2])
+    last_verified = [int(x) for x in last_verified]
     return date(last_verified[0], last_verified[1], last_verified[2])
 
 class VerificationEmail(Resource):
     def get(self):
+        load_dotenv(find_dotenv())
+        sender = os.environ['SENDER']
+        password = os.environ['PUSS']
+        server = 'smtp.gmail.com'
+        port = 465
+        subject = '[@API-test] Annual Verification'
+        em = EmailMessage()
+        em['From'] = sender
+        em['Subject'] = subject
+        context = ssl.create_default_context()
+
         users = Users.query.all()
         user_schema = UserSchema(many=True)
         output = user_schema.dump(users)
@@ -168,22 +173,20 @@ class VerificationEmail(Resource):
             if verified_age <= date.today():
                 recipient = user['email']
                 em['To'] = recipient
-                body = '''
+                body = f'''
                     <!DOCTYPE html>
                         <body>
                             <center>
-                                <h2>Please verify or update your account\'s credentials.</h2>
+                                <h4>Please verify or update your account\'s credentials.</h4>
                                 <br>
-                                <form action="http://127.0.0.1:5000/" method="GET">
-                                        <input type="submit" value="VERIFY" class="btn" style="border: 1px solid darkgreen; color:whitesmoke; background-color:green;">
+                                <form action="http://127.0.0.1:5000/verify/{ user['id'] }" method="GET">
+                                    <input type="submit" value="VERIFY" class="btn" style="border: 1px solid darkgreen; color:whitesmoke; background-color:green;">
                                 </form>
                             </center>
                         </body>
-                        </html>
+                    </html>
                     '''
                 em.set_content(body, subtype='html')
-
-                context = ssl.create_default_context()
                 
                 with smtplib.SMTP_SSL(server, port, context=context) as smtp:
                     smtp.login(sender, password)
