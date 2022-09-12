@@ -99,7 +99,8 @@ resource_fields = {
 }
 
 # VALIDATOR
-regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+regex_email = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+regex_name = r'[A-Za-z]'
 
 class UserSchemaValidator(object):
     def __init__(self, response={}):
@@ -110,14 +111,14 @@ class UserSchemaValidator(object):
 
         try:
             name = self.response.get('name')
-            if name is None or len(name)<=1:
+            if name is None or not re.fullmatch(regex_name, name):
                 raise Exception('Error')
         except Exception as e:
-            error_messages.append('Field name is required!')
+            error_messages.append('Field name cannot containt any special characters!')
             
         try:
             email = self.response.get('email')
-            if email is None or not re.fullmatch(regex, email):
+            if email is None or not re.fullmatch(regex_email, email):
                 raise Exception('Error')
         except Exception as e:
             error_messages.append('Field email has to be a valid email!')
