@@ -25,7 +25,10 @@ class Users(db.Model):
     salary = db.Column(db.Integer, nullable=False)
     ktp = db.Column(db.String(16), nullable=False)
     npwp = db.Column(db.String(20), nullable=False)
-    last_verified = db.Column(db.Date, nullable=False)
+    is_email_verified = db.Column(db.Boolean, nullable=False, default=False)
+    verified_at = db.Column(db.DateTime, nullable=True)
+    expiration_date = db.Column(db.Date, nullable=True)
+    status = db.Column(db.String, nullable=False, default='Unverified')
 
     def __repr__(self):
         return f"User { self.id }: ({ self.name })"
@@ -76,7 +79,10 @@ resource_fields = {
     'salary': fields.Integer,
     'ktp': fields.String,
     'npwp': fields.String,
-    'last_verified': DateFormat,
+    'is_email_verified': fields.Boolean,
+    'verified_at': fields.DateTime,
+    'expiration_date': DateFormat,
+    'status': fields.String,
 }
 
 class IndexPage(Resource):
@@ -85,11 +91,46 @@ class IndexPage(Resource):
         return make_response(render_template('index.html'), 200, headers)
 api.add_resource(IndexPage, '/')
 
+class VerifyPage(Resource):
+    def get(self, user_id):
+        user = Users.query.filter_by(id=user_id).first()
+        headers = {'Content-Type': 'text/html'}
+        return make_response(render_template('verify.html', user=user), 200, headers)
+    
+    @marshal_with(resource_fields)
+    def patch(self, user_id):
+        user = Users.query.filter_by(id=user_id).first()
+        args = user_patch_args.parse_args()
+
+        if not user:
+            abort(404, message="User nonexistence!")
+
+        if args['name']:
+            user.name = args['name']
+        if args['email']:
+            user.email = args['email']
+        if args['phone']:
+            user.phone = args['phone']
+        if args['address']:
+            user.address = args['address']
+        if args['salary']:
+            user.salary = args['salary']
+        if args['ktp']:
+            user.ktp = args['ktp']
+        if args['npwp']:
+            user.npwp = args['npwp']
+        user.last_verified = date.today()
+
+        user.update()
+
+        return user
+api.add_resource(VerifyPage, '/verify/<int:user_id>')
+
 class RegisterPage(Resource):
     def get(self):
         headers = {'Content-Type': 'text/html'}
         return make_response(render_template('register.html'), 200, headers)
-
+        
     @marshal_with(resource_fields)
     def post(self):
         if request.headers['Content-Type'] == 'application/json':
@@ -109,7 +150,8 @@ class RegisterPage(Resource):
             salary = request.form['salary']
             ktp = request.form['ktp']
             npwp = request.form['npwp']
-        last_verified = date.today()
+        is_email_verified = False
+        status = 'Unverified'
 
         new_user = Users(
             name=name,
@@ -119,7 +161,8 @@ class RegisterPage(Resource):
             salary=salary,
             ktp=ktp,
             npwp=npwp,
-            last_verified=last_verified,
+            is_email_verified=is_email_verified,
+            status=status,
         )
 
         new_user.save()
@@ -190,7 +233,7 @@ class VerificationEmail(Resource):
         password = os.environ['PUSS']
         server = 'smtp.gmail.com'
         port = 465
-        subject = '[@API-test] Annual Verification'
+        subject = '[@API-final-test] Annual Verification'
         em = EmailMessage()
         em['From'] = sender
         em['Subject'] = subject
