@@ -1,3 +1,4 @@
 .env
 __pycache__
 unused_files
+venv

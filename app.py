@@ -35,8 +35,8 @@ class Users(db.Model):
     address = db.Column(db.String(255), nullable=False)
     salary = db.Column(db.Integer, nullable=False)
     ktp = db.Column(db.String(16), nullable=False)
-    npwp = db.Column(db.String(20), nullable=False)
-    created_at = db.Column(db.DateTime, nullable=True) # TODO:created_at
+    npwp = db.Column(db.String(16), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
     is_email_verified = db.Column(db.Boolean, nullable=False, default=False)
     email_verified_at = db.Column(db.Date, nullable=True)
@@ -150,8 +150,8 @@ class RegisterPage(Resource):
             salary=salary,
             ktp=ktp,
             npwp=npwp,
-            created_at = datetime.datetime.now(),
-            updated_at = datetime.datetime.now(),
+            created_at=datetime.datetime.now(),
+            updated_at=datetime.datetime.now(),
             is_email_verified=False,
             status='Pending',
         )
